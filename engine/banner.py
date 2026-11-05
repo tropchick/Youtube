@@ -4,13 +4,13 @@ dimmed, and the banner plays centered with its own audio. Then the video continu
 If AT is past the middle, the end is extended by holding the last frame so the banner sits exactly
 in the middle of the final video.
 python3 banner.py IN.mp4 BANNER.mp4 AT OUT.mp4 [height_px]
-height_px 480 = banner covers 25% of the 1080x1920 screen (sides cropped)."""
+height_px default 360 = full screen width edge to edge, nothing cropped (user wants this)."""
 import json
 import subprocess
 import sys
 
 IN, BAN, AT, OUT = sys.argv[1], sys.argv[2], float(sys.argv[3]), sys.argv[4]
-BH = int(sys.argv[5]) if len(sys.argv) > 5 else 480
+BH = int(sys.argv[5]) if len(sys.argv) > 5 else 360
 
 
 def dur(p):
