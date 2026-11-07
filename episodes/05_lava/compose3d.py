@@ -124,7 +124,7 @@ def sfx(path):
 
     def sizzle(dur, vol):
         m = int(dur * sr)
-        return noise(dur, 2) * np.exp(-np.linspace(0, 4, m)) * vol
+        return noise(dur, 14) * np.exp(-np.linspace(0, 4, m)) * vol * 0.35
 
     def rumble(dur, vol):
         m = int(dur * sr)
@@ -169,7 +169,8 @@ if __name__ == "__main__":
     sfx(OUT + ".sfx.wav")
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", VO, "-i", OUT + ".sfx.wav",
                     "-filter_complex",
-                    "[0:a]apad[v];[v][1:a]amix=inputs=2:duration=longest:normalize=0,atrim=0:%s" % DUR,
+                    ("[0:a]apad,asplit[v][key];[1:a]volume=0.6[fx];[fx][key]sidechaincompress=threshold=0.03:ratio=8:attack=20:release=300[duck];"
+                     "[v][duck]amix=inputs=2:duration=longest:normalize=0,atrim=0:%s" % DUR),
                     OUT + ".audio.m4a"], check=True)
     enc = Encoder(OUT, OUT + ".audio.m4a")
     for f in range(int(DUR * FPS)):
