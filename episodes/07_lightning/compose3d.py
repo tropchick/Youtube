@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 from gfx import W, H, FPS, Encoder, text, text_block, pill, prog, ease_back, ease_out
 
 FR, VO, OUT = sys.argv[1], sys.argv[2], sys.argv[3]
-DUR = 40.9
+DUR = 44.8
 T_MC, T_STEAK, T_HOT, T_SUN, T_VOLT, T_SOCK, T_SURV, T_NINE, T_ROY, T_EARTH, T_END = (
     3.4, 7.0, 8.9, 13.9, 16.9, 19.8, 22.45, 24.0, 27.0, 32.95, 37.35)
 STRIKE0 = 1.9
@@ -83,7 +83,10 @@ def overlay(img, t):
         text(d, (W / 2, 1680), "КАЖДУЮ СЕКУНДУ", int(100 * pop(t, 35.9)), fill=CYAN)
     else:
         text_block(d, W / 2, 320, "А ТЕБЯ БИЛО МОЛНИЕЙ?", int(104 * pop(t, T_END)), fill=YEL, max_w=1000)
-        pill(d, W / 2, 1700, "Пиши в комментах", int(70 * pop(t, 39.36)), (95, 191, 58), (14, 42, 23))
+        if t < 41.0:
+            pill(d, W / 2, 1700, "Пиши в комментах", int(70 * pop(t, 39.36)), (95, 191, 58), (14, 42, 23))
+        else:
+            pill(d, W / 2, 1700, "Подпишись на LowPolyLab", int(66 * pop(t, 41.0)), (230, 60, 60), (255, 255, 255))
     text(d, (W / 2, H - 50), "LowPolyLab", 38, stroke=5, bold=True)
     for s in CUTS:
         if 0 <= t - s < 0.12:
@@ -165,6 +168,9 @@ def sfx(path):
     for x in np.arange(T_EARTH + 0.5, T_END, 0.23):
         add(x + rng.uniform(0, 0.1), crack(0.12))
     thunder(T_END + 1.2, 0.5)
+    add(41.0, pop_(0.4))
+    thunder(42.0, 0.7)
+    thunder(43.6, 0.5)
     add(39.36, pop_(0.4))
     out = np.clip(out, -1, 1)
     with wave.open(path, "wb") as w:

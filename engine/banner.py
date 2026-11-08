@@ -1,16 +1,17 @@
-"""Insert the 5 s sponsor banner into a finished 1080x1920 video.
-The main video pauses at AT seconds (pick a voice pause near the middle): its last frame is held,
-dimmed, and the banner plays centered with its own audio. Then the video continues.
-If AT is past the middle, the end is extended by holding the last frame so the banner sits exactly
-in the middle of the final video.
-python3 banner.py IN.mp4 BANNER.mp4 AT OUT.mp4 [height_px]
-height_px default 360 = full screen width edge to edge, nothing cropped (user wants this)."""
+"""Insert a sponsor banner into a finished 1080x1920 video.
+The main video pauses at AT seconds (a voice pause): its frame is held, dimmed and blurred, and the
+banner plays centered at full screen width (nothing cropped) with its own audio. Then the video goes on.
+A green-screen background around the banner (corner pixel pure green) is keyed out automatically.
+The banner sits exactly in the middle only if the input is exactly 2*AT long. The user does not want a
+frozen picture at the end (2026-11-08), so a shorter input is refused: render/extend the real ending
+to 2*AT seconds first (or pick another AT). --allow-pad overrides this.
+python3 banner.py IN.mp4 BANNER.mp4 AT OUT.mp4 [--allow-pad]"""
 import json
 import subprocess
 import sys
 
 IN, BAN, AT, OUT = sys.argv[1], sys.argv[2], float(sys.argv[3]), sys.argv[4]
-BH = int(sys.argv[5]) if len(sys.argv) > 5 else 360
+ALLOW_PAD = "--allow-pad" in sys.argv
 
 
 def dur(p):
@@ -20,8 +21,19 @@ def dur(p):
 
 
 L, B = dur(IN), dur(BAN)
-pad = max(0.0, 2 * AT - L)  # hold the last frame so the banner is centered
-BW = round(BH * 3 / 2) * 2  # banner is 3:1
+if abs(2 * AT - L) > 0.1 and not ALLOW_PAD:
+    sys.exit(f"input is {L:.2f}s; for a centered banner at AT={AT} it must be {2 * AT:.2f}s. "
+             f"Extend/trim the real video, or use AT={L / 2:.2f}.")
+pad = max(0.0, 2 * AT - L)
+probe = json.loads(subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
+                                   "stream=width,height", "-of", "json", BAN],
+                                  capture_output=True, text=True, check=True).stdout)["streams"][0]
+BW = 1080
+BH = round(BW * probe["height"] / probe["width"] / 2) * 2
+corner = subprocess.run(["ffmpeg", "-v", "error", "-ss", str(min(1.0, B / 2)), "-i", BAN, "-frames:v", "1",
+                         "-vf", "crop=4:4:0:0", "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
+                        capture_output=True, check=True).stdout[:3]
+KEY = corner[1] > 200 and corner[0] < 60 and corner[2] < 60
 import os
 import tempfile
 
@@ -32,7 +44,8 @@ fc = (
     f"[0:v]trim={AT}:{L},setpts=PTS-STARTPTS,tpad=stop_mode=clone:stop_duration={pad}[v2];"
     f"[0:v]trim={AT - 0.04}:{AT},setpts=PTS-STARTPTS,tpad=stop_mode=clone:stop_duration={B},"
     f"trim=0:{B},eq=brightness=-0.25,boxblur=6[hold];"
-    f"[1:v]scale={BW}:{BH},crop=min(iw\\,1080):ih,fps=30,trim=0:{B},setpts=PTS-STARTPTS[ban];"
+    f"[1:v]scale={BW}:{BH},fps=30,trim=0:{B},setpts=PTS-STARTPTS"
+    + (",format=rgba,colorkey=0x00FE00:0.35:0.08" if KEY else "") + "[ban];"
     f"[hold][ban]overlay=(W-w)/2:(H-h)/2:shortest=1,setpts=PTS-STARTPTS[vb];"
     f"[v1][vb][v2]concat=n=3:v=1:a=0,fps=30[v]"
 )
@@ -69,4 +82,4 @@ subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", vid, "-f", "f32le", "-ar", 
                 "-movflags", "+faststart", OUT], check=True)
 T = dur(OUT)
 print(f"total {T:.2f}s, banner {AT:.2f}-{AT + B:.2f}, middle {T / 2:.2f}, banner center {AT + B / 2:.2f}, "
-      f"area {1080 * BH / (1080 * 1920) * 100:.1f}%" if BW >= 1080 else f"area {BW * BH / (1080 * 1920) * 100:.1f}%")
+      f"banner {BW}x{BH}, area {BW * BH / (1080 * 1920) * 100:.1f}%, green key {KEY}")

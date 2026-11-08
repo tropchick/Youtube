@@ -11,7 +11,7 @@ from mathutils import Vector
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "engine"))
 from blocky import reset, mat, srgb, cube as ops_cube, character, look_at, setup_render
 
-FPS, DUR = 30, 40.9
+FPS, DUR = 30, 44.8
 OUT = sys.argv[1]
 os.makedirs(OUT, exist_ok=True)
 F0 = int(sys.argv[2]) if len(sys.argv) > 2 else 0
@@ -389,8 +389,9 @@ def update(t):
         else:  # end
             lt = t - T_END
             hero.rotation_euler = (0, 0, math.radians(15))
-            cam_to((2.0, -5.6, 1.9), (0, 0, 1.3))
-            lvl = strike(b_far, t, T_END + 1.2, 0.35, base_energy=60000, loc=(9, 12, 10))
+            k = ease((t - 40.9) / 3.9)
+            cam_to((2.0 + 1.0 * k, -5.6 - 3.0 * k, 1.9 + 1.4 * k), (0, 0, 1.3 + 0.4 * k))
+            lvl = strike(b_far, t, [T_END + 1.2, 42.0, 43.6], 0.35, base_energy=60000, loc=(9, 12, 10))
     elif t < T_VOLT:  # heat columns
         show("heat")
         do_rain(t, (0, 0, 0), False)
